@@ -1,0 +1,1357 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>—</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{width:100%;height:100%;background:#000;overflow:hidden;
+  font-family:'Courier New',Courier,monospace;color:#cccccc;cursor:none}
+canvas{display:block;position:fixed;inset:0}
+
+/* ── LOADING ── */
+#loading{position:fixed;inset:0;background:#000;z-index:2000;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:36px;padding:48px;transition:opacity .7s ease}
+#loading.hide{opacity:0;pointer-events:none}
+.ld-sub{font-size:10px;letter-spacing:.45em;text-transform:uppercase;color:#888}
+.bar-wrap{width:min(420px,60vw)}
+.bar-meta{display:flex;justify-content:space-between;font-size:9px;
+  letter-spacing:.25em;color:#888;text-transform:uppercase;margin-bottom:9px}
+.bar-track{height:1px;background:#333;position:relative}
+.bar-fill{position:absolute;left:0;top:0;bottom:0;background:#fff;
+  transition:width .3s ease;width:0%}
+
+/* ── START ── */
+#start{position:fixed;inset:0;background:#000;z-index:1900;
+  display:none;flex-direction:column;align-items:center;justify-content:center;
+  gap:48px;padding:48px;transition:opacity .5s ease}
+#start.show{display:flex}
+#start.hide{opacity:0;pointer-events:none}
+.st-title{font-size:clamp(44px,9vw,120px);letter-spacing:.35em;text-transform:uppercase;
+  color:#fff;line-height:1;text-align:center}
+.st-title em{font-style:normal;color:#fff;opacity:.5}
+.ctrl-grid{display:grid;grid-template-columns:auto 1fr;gap:7px 22px;
+  font-size:10px;letter-spacing:.22em;text-transform:uppercase;align-items:center}
+.kc{border:1px solid #888;color:#fff;padding:3px 9px;font-size:9px;
+  letter-spacing:.12em;white-space:nowrap;font-family:inherit;
+  text-shadow:0 0 8px rgba(255,255,255,.4)}
+.kd{color:#ccc;text-shadow:0 1px 4px #000}
+#enter-btn{background:none;border:1px solid #fff;color:#fff;
+  padding:14px 40px;font-family:inherit;font-size:11px;letter-spacing:.4em;
+  text-transform:uppercase;cursor:none;transition:background .2s,color .2s}
+#enter-btn:hover{background:#fff;color:#000}
+
+/* ── RETRO CURSOR ── */
+#rc{position:fixed;pointer-events:none;z-index:9999;display:none;
+  width:22px;height:22px;transform:translate(-11px,-11px);
+  background:radial-gradient(circle,#fff 1.5px,transparent 1.5px) center/100% 100%}
+#rc::before{content:'';position:absolute;width:8px;height:1px;
+  background:#fff;top:10px;left:0;box-shadow:14px 0 0 #fff,0 0 4px #fff,14px 0 4px #fff}
+#rc::after{content:'';position:absolute;width:1px;height:8px;
+  background:#fff;left:10px;top:0;box-shadow:0 14px 0 #fff,0 0 4px #fff,0 14px 4px #fff}
+
+/* ── HUD ── */
+#hud{position:fixed;inset:0;pointer-events:none;z-index:100;
+  opacity:0;transition:opacity .5s}
+#hud.show{opacity:1}
+
+#world-id{position:absolute;top:20px;left:24px;font-size:52px;
+  letter-spacing:.08em;color:#fff;line-height:1;opacity:.80;
+  text-shadow:0 2px 12px rgba(0,0,0,.9)}
+
+#controls{position:absolute;top:20px;right:24px;
+  display:grid;grid-template-columns:auto auto;gap:4px 10px;
+  font-size:8px;letter-spacing:.15em;text-transform:uppercase;
+  align-items:center;justify-items:start}
+#controls .ck{display:block;border:1px solid rgba(255,255,255,.5);color:#fff;
+  padding:1px 0;font-size:7px;letter-spacing:.08em;
+  width:52px;text-align:center;justify-self:end;
+  text-shadow:0 0 6px rgba(255,255,255,.3);
+  background:rgba(0,0,0,.35)}
+#controls .cl{color:#ccc;text-shadow:0 1px 6px rgba(0,0,0,.9)}
+
+#crosshair{position:absolute;top:50%;left:50%;
+  transform:translate(-50%,-50%);width:14px;height:14px;opacity:.4}
+#crosshair::before,#crosshair::after{content:'';position:absolute;background:#fff}
+#crosshair::before{top:50%;left:0;right:0;height:1px;transform:translateY(-50%)}
+#crosshair::after{left:50%;top:0;bottom:0;width:1px;transform:translateX(-50%)}
+
+#interact{position:absolute;bottom:72px;left:50%;
+  transform:translateX(-50%) translateY(6px);
+  font-size:10px;letter-spacing:.3em;text-transform:uppercase;
+  color:#fff;opacity:0;transition:opacity .2s,transform .2s;
+  white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.4);padding-bottom:4px}
+#interact.show{opacity:1;transform:translateX(-50%) translateY(0)}
+#interact .ik{display:inline-block;border:1px solid rgba(255,255,255,.5);
+  padding:2px 7px;margin-right:10px;font-weight:bold}
+
+/* ── FADE ── */
+#fade{position:fixed;inset:0;background:#000;z-index:800;
+  opacity:0;pointer-events:none;transition:opacity .45s ease}
+#fade.show{opacity:1}
+
+/* ── ROOM LOAD ── */
+#rload{position:fixed;bottom:18px;left:24px;font-size:8px;
+  letter-spacing:.3em;text-transform:uppercase;color:#aaa;
+  text-shadow:0 1px 6px rgba(0,0,0,.9);
+  z-index:900;display:none}
+#rload.show{display:block}
+#rload::before{content:'▶ ';color:#fff;animation:blink .8s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+
+
+</style>
+</head>
+<body>
+
+<div id="loading">
+  <div class="ld-sub">Initializing</div>
+  <div class="bar-wrap">
+    <div class="bar-meta">
+      <span id="ld-label">Loading lobby</span>
+      <span id="ld-pct">0%</span>
+    </div>
+    <div class="bar-track"><div class="bar-fill" id="bar-fill"></div></div>
+  </div>
+</div>
+
+<div id="rc"></div>
+<div id="start">
+  <div class="ctrl-grid">
+    <span class="kc">Z Q S D</span><span class="kd">Move</span>
+    <span class="kc">Mouse</span><span class="kd">Look</span>
+    <span class="kc">Space</span><span class="kd">Jump</span>
+    <span class="kc">E</span><span class="kd">Enter portal / return to lobby</span>
+    <span class="kc">Esc</span><span class="kd">Release cursor</span>
+  </div>
+  <button id="enter-btn">[ Enter ]</button>
+</div>
+
+<div id="hud">
+  <div id="world-id">00</div>
+  <div id="controls">
+    <span class="ck">Z Q S D</span><span class="cl">Move</span>
+    <span class="ck">Mouse</span><span class="cl">Look</span>
+    <span class="ck">Space</span><span class="cl">Jump</span>
+    <span class="ck">E</span><span class="cl">Interact</span>
+    <span class="ck">Esc</span><span class="cl">Release</span>
+  </div>
+  <div id="crosshair"></div>
+  <div id="interact"><span class="ik">E</span><span id="il">Enter 01</span></div>
+</div>
+
+<div id="fade"></div>
+<div id="rload">Loading world</div>
+
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+  }
+}
+</script>
+<script type="module">
+import * as THREE from 'three';
+import { OBJLoader }       from 'three/addons/loaders/OBJLoader.js';
+import { MTLLoader }       from 'three/addons/loaders/MTLLoader.js';
+import { EffectComposer }  from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass }      from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass }      from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass }      from 'three/addons/postprocessing/OutputPass.js';
+import { SSAOPass }        from 'three/addons/postprocessing/SSAOPass.js';
+
+// ════════════════════════════════════════
+// WORLD DEFINITIONS
+// ════════════════════════════════════════
+const SCALE = 0.01; // OBJ is in cm → metres
+
+const WORLDS = {
+  lobby: {
+    id:'lobby', label:'00',
+    mtlBase:'WORLDS/LOBBY/',      mtlFile:'LOBBY.mtl',
+    objBase:'WORLDS/LOBBY/',      objFile:'LOBBY.obj',
+    spawn: new THREE.Vector3(-0.6, 1.5, -6.1),
+    spawnYaw: Math.PI,
+    atmo:{
+      bg:0x020407, fog:0x020407, fogD:0.022,
+      amb:0x1a2838, ambI:.65, ac:0x2255cc, acI:1.4,
+      bloom:.14, bloomR:.5, bloomT:.70,
+      grain:.016, vig:.72, ab:.0014,
+      tint:[.75,.85,1.25], edge:.0, ao:.35,
+      distort:0, tintMix:.44, contrast:1.14, sat:1.38,
+      rays:.14, rayPos:[.50,.80],
+      sway:{f:.35,a:.0015,roll:.0006},
+      lights:[ [0,3,-5], [-4,2,-8], [4,2,-8] ],
+    },
+    // Door portals on cube positions
+    portals:[
+      { dest:'world1', label:'01', pos:[ 2.87, 0.40, 3.90], rotY:-2.44, size:[1.2,2.2] },
+      { dest:'world2', label:'02', pos:[-0.90, 0.43, 4.43], rotY:0,     size:[1.2,2.2] },
+      { dest:'world3', label:'03', pos:[-4.67, 0.43, 4.08], rotY:2.42,  size:[1.2,2.2] },
+      { dest:'break',  label:'0B', pos:[ 5.01, 2.03,-3.39], rotY:Math.PI, size:[1.2,2.2] },
+    ],
+    returnPortal: null,
+  },
+  world1: {
+    id:'world1', label:'01',
+    // WORLD_ONE textures sit in WORLDS/WORLD_ONE/ (not a subdirectory)
+    // so we set the mtlBase one level up so WORLD_ONE/materialX resolves correctly
+    mtlBase:'WORLDS/', mtlFile:'WORLD_ONE/WORLD_ONE.mtl',
+    objBase:'WORLDS/', objFile:'WORLD_ONE/WORLD_ONE.obj',
+    spawn: new THREE.Vector3(0, 0, 0), spawnYaw: Math.PI,
+    atmo:{
+      bg:0x1a0600, fog:0x1a0600, fogD:0.034,
+      amb:0x7a2404, ambI:1.5, ac:0xff6010, acI:2.2,
+      bloom:.30, bloomR:.4, bloomT:.48,
+      grain:.040, vig:.72, ab:.0022,
+      tint:[1.42,.66,.50], edge:.0, ao:.50,
+      distort:.0007, tintMix:.58, contrast:1.22, sat:1.62,
+      rays:.28, rayPos:[.50,.82],
+      sway:{f:1.2,a:.007,roll:.003},
+      lights:[ [0,3,0], [-3,2,3], [3,2,-3] ],
+    },
+    portals:[],
+    returnPortal:{ pos:[0,0,1.5], size:[1.6,2.9] },
+  },
+  world2: {
+    id:'world2', label:'02',
+    mtlBase:'WORLDS/WORLD_TWO/', mtlFile:'WORLD_TWO.mtl',
+    objBase:'WORLDS/WORLD_TWO/', objFile:'WORLD_TWO.obj',
+    spawn: new THREE.Vector3(0, 0, 0), spawnYaw: Math.PI,
+    atmo:{
+      bg:0x060401, fog:0x060401, fogD:0.042,
+      amb:0x280e04, ambI:.50, ac:0xcc5010, acI:1.6,
+      bloom:.28, bloomR:.5, bloomT:.55,
+      grain:.065, vig:.88, ab:.0014,
+      tint:[1.14,.88,.62], edge:.0, ao:.68,
+      distort:.0002, tintMix:.62, contrast:1.38, sat:1.25,
+      rays:.18, rayPos:[.50,.55],
+      sway:{f:.28,a:.007,roll:.003},
+      lights:[ [0,3,0], [4,2,2], [-4,2,-2] ],
+    },
+    portals:[],
+    returnPortal:{ pos:[0,0,1.5], size:[1.6,2.9] },
+  },
+  world3: {
+    id:'world3', label:'03',
+    mtlBase:'WORLDS/WORLD_THREE/', mtlFile:'WORLD_THREE.mtl',
+    objBase:'WORLDS/WORLD_THREE/', objFile:'WORLD_THREE.obj',
+    spawn: new THREE.Vector3(0, 0, 0), spawnYaw: Math.PI,
+    atmo:{
+      bg:0x040c05, fog:0x040c05, fogD:0.020,
+      amb:0x1e3822, ambI:1.0, ac:0x90ff70, acI:2.8,
+      bloom:.50, bloomR:.4, bloomT:.44,
+      grain:.055, vig:.76, ab:.0028,
+      tint:[.68,1.18,.72], edge:.0, ao:.50,
+      distort:.0008, tintMix:.65, contrast:1.34, sat:1.55,
+      rays:.35, rayPos:[.50,.96],
+      sway:{f:.6,a:.009,roll:.0042},
+      lights:[ [0,3,0], [3,2,3], [-3,2,-3] ],
+    },
+    portals:[],
+    returnPortal:{ pos:[0,0,1.5], size:[1.6,2.9] },
+  },
+  break: {
+    id:'break', label:'0B',
+    mtlBase:'WORLDS/BREAK_WORLD/', mtlFile:'break_world.mtl',
+    objBase:'WORLDS/BREAK_WORLD/', objFile:'break_world.obj',
+    spawn: new THREE.Vector3(0, 0, 0), spawnYaw: Math.PI,
+    atmo:{
+      bg:0x020e04, fog:0x020e04, fogD:0.006,
+      amb:0x184020, ambI:1.1, ac:0x40ff70, acI:1.4,
+      bloom:.38, bloomR:.5, bloomT:.62,
+      grain:.022, vig:.50, ab:.0032,
+      tint:[.70,1.45,.90], edge:.0, ao:.22,
+      distort:.0028, tintMix:.58, contrast:1.18, sat:1.80,
+      rays:.18, rayPos:[.60,.82],
+      hueRate:.18,
+      sway:{f:.30,a:.004,roll:.003},
+      lights:[ [0,3,0], [-3,2,2], [3,2,-2] ],
+    },
+    portals:[],
+    returnPortal:{ pos:[0,0,1.5], size:[1.6,2.9] },
+  },
+};
+
+// ════════════════════════════════════════
+// RENDERER
+// ════════════════════════════════════════
+const renderer = new THREE.WebGLRenderer({ antialias:false, powerPreference:'high-performance' });
+renderer.setPixelRatio(1);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = false;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.25;
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(70, innerWidth/innerHeight, 0.04, 300);
+scene.fog = new THREE.FogExp2(0x04060d, 0.038);
+
+// ════════════════════════════════════════
+// POST-PROCESSING
+// ════════════════════════════════════════
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloomPass = new UnrealBloomPass(
+  new THREE.Vector2(innerWidth, innerHeight), .32, .5, .72
+);
+composer.addPass(bloomPass);
+
+/* Combined FX pass: chroma · edges · grain · vignette · tint */
+const FX = {
+  uniforms:{
+    tDiffuse:  { value:null },
+    time:      { value:0 },
+    grain:     { value:.10 },
+    vig:       { value:.78 },
+    ab:        { value:.0028 },
+    tint:      { value:new THREE.Vector3(.82,.90,1.18) },
+    edgeGlow:  { value:.28 },
+    edgeCol:   { value:new THREE.Color(0x2255ff) },
+    res:       { value:new THREE.Vector2(innerWidth,innerHeight) },
+    ao:        { value:.30 },
+    distort:   { value:0.0 },
+    tintMix:   { value:.42 },
+    contrast:  { value:1.16 },
+    sat:       { value:1.48 },
+    rays:      { value:.12 },
+    rayPos:    { value:new THREE.Vector2(.5,.80) },
+    hueShift:  { value:0.0 },
+  },
+  vertexShader:`
+    varying vec2 vUv;
+    void main(){ vUv=uv; gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }
+  `,
+  fragmentShader:`
+    uniform sampler2D tDiffuse;
+    uniform float time, grain, vig, ab, edgeGlow, ao, distort, tintMix, contrast, sat, rays, hueShift;
+    uniform vec2 rayPos;
+    uniform vec3 tint, edgeCol;
+    uniform vec2 res;
+    varying vec2 vUv;
+
+    float rnd(vec2 c){ return fract(sin(dot(c,vec2(12.9898,78.233)))*43758.5453); }
+
+    vec3 hueRot(vec3 c, float a){
+      float cs=cos(a), sn=sin(a);
+      return clamp(mat3(
+        .299+.701*cs-.168*sn, .587-.587*cs-.330*sn, .114-.114*cs+.497*sn,
+        .299-.299*cs+.328*sn, .587+.413*cs+.035*sn, .114-.114*cs-.272*sn,
+        .299-.300*cs-.848*sn, .587-.588*cs+1.05*sn,  .114+.886*cs-.203*sn
+      )*c, 0., 1.);
+    }
+
+    void main(){
+      vec2 uv = vUv;
+
+      /* per-world UV breathing distortion */
+      uv.x += sin(uv.y*130.+time*.7)*distort;
+      uv.y += sin(uv.x*90. +time*.5)*distort*.7;
+
+      /* chromatic aberration -- use original vUv for radial distance */
+      float r2 = dot((vUv-.5)*2.,(vUv-.5)*2.);
+      float ca = ab * r2;
+      vec4 col;
+      col.r = texture2D(tDiffuse, uv+vec2( ca,0.)).r;
+      col.g = texture2D(tDiffuse, uv).g;
+      col.b = texture2D(tDiffuse, uv-vec2( ca,0.)).b;
+      col.a = 1.;
+
+      /* improved SSAO -- 8-tap circle at 2 radii */
+      float lC = dot(col.rgb, vec3(.299,.587,.114));
+      float aoAcc = 0.0;
+      for(int i=0;i<8;i++){
+        float a = float(i)*0.7854;
+        vec2 cv = vec2(cos(a),sin(a));
+        float l1 = dot(texture2D(tDiffuse,uv+cv*4./res).rgb, vec3(.299,.587,.114));
+        float l2 = dot(texture2D(tDiffuse,uv+cv*9./res).rgb, vec3(.299,.587,.114));
+        aoAcc += clamp(l1-lC,0.,1.)*.55 + clamp(l2-lC,0.,1.)*.45;
+      }
+      float aoFactor = clamp(aoAcc/8.*ao, 0.0, 0.65);
+      col.rgb *= 1.0-aoFactor;
+
+      /* dim + contrast */
+      col.rgb *= 0.68;
+      col.rgb = (col.rgb - 0.5) * contrast + 0.5;
+      col.rgb = clamp(col.rgb, 0.0, 1.0);
+
+      /* saturation boost */
+      float lum = dot(col.rgb, vec3(0.2126, 0.7152, 0.0722));
+      col.rgb = mix(vec3(lum), col.rgb, sat);
+      col.rgb = clamp(col.rgb, 0.0, 1.0);
+
+      /* atmosphere tint */
+      col.rgb = mix(col.rgb, col.rgb*tint, tintMix);
+
+      /* god rays -- radial march toward light source */
+      vec2 rayDelta = (uv - rayPos) / 20.0;
+      float rayDecay = 1.0;
+      vec3 rayAcc = vec3(0.0);
+      vec2 rayTc = uv;
+      for(int ri=0;ri<20;ri++){
+        rayTc -= rayDelta;
+        vec3 s = texture2D(tDiffuse, clamp(rayTc, vec2(0.001), vec2(0.999))).rgb;
+        float sl = dot(s, vec3(.299,.587,.114));
+        rayAcc += s * clamp(sl-.25,0.,1.) * rayDecay * 0.055;
+        rayDecay *= 0.91;
+      }
+      col.rgb += rayAcc * rays;
+
+      /* light vignette */
+      col.rgb *= 1.-smoothstep(.55,1.45,sqrt(r2)*vig);
+
+      /* film grain */
+      col.rgb += (rnd(uv + vec2(time*.019, time*.013))-.5)*grain;
+
+      if(hueShift != 0.0) col.rgb = hueRot(col.rgb, hueShift);
+
+      gl_FragColor = col;
+    }
+  `,
+};
+
+const fxPass = new ShaderPass(FX);
+fxPass.renderToScreen = false;
+composer.addPass(fxPass);
+composer.addPass(new OutputPass());
+
+// ════════════════════════════════════════
+// LIGHTS  (updated per world)
+// ════════════════════════════════════════
+const ambient = new THREE.AmbientLight(0x4a6080, 1.4);
+scene.add(ambient);
+
+const hemi = new THREE.HemisphereLight(0xb0c0d0, 0x2a2a30, 1.0);
+scene.add(hemi);
+
+const lights = [0,1,2].map(() => {
+  const l = new THREE.PointLight(0x4480ff, 1.6, 24);
+  scene.add(l);
+  return l;
+});
+
+// ════════════════════════════════════════
+// PLAYER
+// ════════════════════════════════════════
+const player = {
+  pos:    new THREE.Vector3(0, 1.7, 2),
+  vel:    new THREE.Vector3(),
+  yaw:    0, pitch: 0,
+  height: 1.68,
+  speed:  4.2,
+  jumpV:  3.8,
+  onGround: false,
+  world:  'lobby',
+};
+
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+const keys   = {};
+let locked   = false;
+let inTrans  = false;
+let nearPtl  = null;
+
+const wGroups  = {};  // id → Group
+const wMeshes  = {};  // id → Mesh[]
+const wSphere  = {};  // id → Vector3 (spawn sphere world pos)
+const portals  = [];  // active portal objects
+let   retPortal = null;
+
+// ════════════════════════════════════════
+// LOADERS
+// ════════════════════════════════════════
+function loadModel(wid){
+  const d = WORLDS[wid];
+  return new Promise((res,rej)=>{
+    const ol = new OBJLoader();
+    ol.setPath(d.objBase);
+
+    /* Load MTL if specified */
+    if(d.mtlFile){
+      const ml = new MTLLoader();
+      ml.setPath(d.mtlBase);
+      ml.load(d.mtlFile, mats=>{
+        mats.preload();
+        ol.setMaterials(mats);
+        loadOBJ(ol, d.objFile, res, rej);
+      }, undefined, () => {
+        /* If MTL fails, load without materials */
+        loadOBJ(ol, d.objFile, res, rej);
+      });
+    } else {
+      loadOBJ(ol, d.objFile, res, rej);
+    }
+
+    function loadOBJ(loader, file, res, rej){
+      loader.load(file, obj=>{
+        obj.scale.setScalar(SCALE);
+        obj.updateMatrixWorld(true);
+
+        /* Center geometry at origin: XZ at (0,0) and Y bottom at 0 */
+        const box = new THREE.Box3().setFromObject(obj);
+        const center = box.getCenter(new THREE.Vector3());
+        obj.position.x -= center.x;
+        if(wid !== 'lobby') obj.position.y -= box.min.y;
+        obj.position.z -= center.z;
+        obj.updateMatrixWorld(true);
+
+        const meshes = [];
+        const basicMat = new THREE.MeshBasicMaterial({ color:0x999999, side:THREE.DoubleSide });
+        const stdMat = new THREE.MeshStandardMaterial({ color:0xcccccc, metalness:.1, roughness:.8 });
+
+        const acColor = WORLDS[wid].atmo.ac;
+        const sphereMat = new THREE.MeshBasicMaterial({
+          color: new THREE.Color(acColor), transparent:true, opacity:.82,
+        });
+
+        let meshCount = 0;
+        let spherePos = null;
+        obj.traverse(c=>{
+          if(!c.isMesh) return;
+          meshCount++;
+
+          if(c.name === 'default_procedural_mesh_sphere#0'){
+            const sb = new THREE.Box3().setFromObject(c);
+            spherePos = sb.getCenter(new THREE.Vector3());
+            c.material = sphereMat;
+            return;
+          }
+
+          /* hide door-placeholder cubes */
+          if(c.name.startsWith('default_procedural_mesh_cube')){
+            c.visible = false;
+            return;
+          }
+
+          /* photogrammetry textures have baked lighting — use unlit material */
+          if(c.material && c.material.map){
+            c.material = new THREE.MeshBasicMaterial({
+              map: c.material.map, side: THREE.DoubleSide,
+            });
+          } else {
+            c.material = basicMat;
+          }
+          meshes.push(c);
+        });
+
+        /* glow light at sphere (added to obj — pos is corrected to local space) */
+        if(spherePos){
+          const sLight = new THREE.PointLight(acColor, 2.2, 6);
+          const localSp = obj.worldToLocal(spherePos.clone());
+          sLight.position.copy(localSp);
+          obj.add(sLight);
+        }
+
+        res({ group:obj, meshes, spherePos });
+      }, undefined, rej);
+    }
+  });
+}
+
+
+// ════════════════════════════════════════
+// COLLISION HELPERS
+// ════════════════════════════════════════
+const _dRay = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0,-1,0), 0.01, 4);
+const _wDirs = [
+  new THREE.Vector3( 1,0, 0),
+  new THREE.Vector3(-1,0, 0),
+  new THREE.Vector3( 0,0, 1),
+  new THREE.Vector3( 0,0,-1),
+];
+const _wRays = _wDirs.map(d=>new THREE.Raycaster(new THREE.Vector3(), d, 0.01, .42));
+
+function floorY(pos, meshArr){
+  _dRay.ray.origin.set(pos.x, pos.y+.3, pos.z);
+  const h = _dRay.intersectObjects(meshArr, false);
+  return h.length ? h[0].point.y : null;
+}
+
+let _wallTick = 0;
+function resolveWalls(pos, meshArr){
+  /* only one direction per frame → 1 raycast/frame instead of 4 */
+  _wallTick = (_wallTick + 1) % 4;
+  const i = _wallTick;
+  const o = new THREE.Vector3(pos.x, pos.y+1., pos.z);
+  _wRays[i].ray.origin.copy(o);
+  const h = _wRays[i].intersectObjects(meshArr, false);
+  if(h.length){
+    const push = .42 - h[0].distance;
+    if(push>0) pos.addScaledVector(_wDirs[i], -push);
+  }
+}
+
+// ════════════════════════════════════════
+// TEXT SPRITE
+// ════════════════════════════════════════
+function makeSprite(text, hexColor){
+  const c = document.createElement('canvas');
+  c.width=256; c.height=128;
+  const ctx=c.getContext('2d');
+  ctx.font='bold 72px Courier New, monospace';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillStyle='#'+new THREE.Color(hexColor).getHexString();
+  ctx.fillText(text, 128, 64);
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({
+    map:new THREE.CanvasTexture(c),
+    transparent:true, depthWrite:false,
+  }));
+  sp.scale.set(1.4,.7,1);
+  return sp;
+}
+
+// ════════════════════════════════════════
+// PORTAL FACTORY
+// ════════════════════════════════════════
+function makePortalGeom(w, h, acColor, opacity=.15){
+  const g = new THREE.Group();
+  const fm = new THREE.MeshBasicMaterial({ color:acColor });
+  const t=.045;
+  [
+    [[0, h/2,0],[w,t,t]],
+    [[0,-h/2,0],[w,t,t]],
+    [[-w/2,0,0],[t,h,t]],
+    [[ w/2,0,0],[t,h,t]],
+  ].forEach(([p,s])=>{
+    const m=new THREE.Mesh(new THREE.BoxGeometry(...s), fm);
+    m.position.set(...p); g.add(m);
+  });
+
+  // Two sliding panels
+  const pm=new THREE.MeshBasicMaterial({color:acColor,transparent:true,opacity,side:THREE.DoubleSide});
+  const pL=new THREE.Mesh(new THREE.PlaneGeometry(w/2-.03,h-.06), pm.clone());
+  const pR=new THREE.Mesh(new THREE.PlaneGeometry(w/2-.03,h-.06), pm.clone());
+  pL.position.set(-w/4,0,.01); pR.position.set(w/4,0,.01);
+  g.add(pL); g.add(pR);
+
+  // Portal interior glow
+  const gm=new THREE.MeshBasicMaterial({color:acColor,transparent:true,opacity:0,side:THREE.DoubleSide});
+  const gp=new THREE.Mesh(new THREE.PlaneGeometry(w,h), gm);
+  gp.position.z=-.02; g.add(gp);
+
+  // Point light inside portal
+  const pl=new THREE.PointLight(acColor, .9, 8);
+  pl.position.z=.4; g.add(pl);
+
+  return { group:g, pL, pR, gp, pl, w, h };
+}
+
+function spawnPortal(def, atmoAcColor){
+  const [px,py,pz] = def.pos;
+  const [w,h]      = def.size;
+  const ac = new THREE.Color(atmoAcColor);
+
+  const { group, pL, pR, gp, pl } = makePortalGeom(w, h, ac);
+  group.position.set(px, py+h/2, pz);
+  group.rotation.y = def.rotY || 0;
+
+  /* floating label above */
+  const sp = makeSprite(def.label, atmoAcColor);
+  sp.position.set(0, h/2+.4, 0);
+  group.add(sp);
+
+  /* subtle window-light behind portal */
+  const winLight = new THREE.SpotLight(ac, 1.2, 15, Math.PI*.12, .5, 1.5);
+  winLight.position.set(0, h*.6, -2);
+  winLight.target.position.set(0,0,4);
+  group.add(winLight); group.add(winLight.target);
+
+  scene.add(group);
+
+  return {
+    group, pL, pR, gp, pl,
+    w, h,
+    dest: def.dest,
+    label: def.label,
+    openAmt: 0,
+    worldPos: new THREE.Vector3(px, py+h/2, pz),
+  };
+}
+
+function spawnReturn(def, atmo){
+  if(!def) return null;
+  const [px,py,pz] = def.pos;
+
+  const group = new THREE.Group();
+  group.position.set(px, py + player.height + .6, pz);
+
+  const sp = makeSprite('00', 0x8fc88f);
+  sp.position.set(0, .3, 0);
+  group.add(sp);
+
+  scene.add(group);
+  return { group, dest:'lobby', label:'00', worldPos:new THREE.Vector3(px, py, pz) };
+}
+
+// ════════════════════════════════════════
+// LOBBY SPAWN MARKER  ("00" floating orb)
+// ════════════════════════════════════════
+function makeLobbyMarker(pos){
+  const grp = new THREE.Group();
+  grp.position.copy(pos).setY(pos.y + 1.7 + .6);
+
+  const sp = makeSprite('00', 0x3aff3a);
+  sp.position.set(0,.3,0);
+  grp.add(sp);
+
+  scene.add(grp);
+  return grp;
+}
+
+// ════════════════════════════════════════
+// WORLD MANAGEMENT
+// ════════════════════════════════════════
+let lobbyMarker = null;
+let sphereLabel = null;
+
+async function activateWorld(wid){
+  /* remove previous */
+  for(const [id,g] of Object.entries(wGroups)){
+    if(id!==wid && g.parent) scene.remove(g);
+  }
+  portals.forEach(p=>scene.remove(p.group));
+  portals.length=0;
+  if(retPortal){ scene.remove(retPortal.group); retPortal=null; }
+  if(lobbyMarker){ scene.remove(lobbyMarker); lobbyMarker=null; }
+  if(sphereLabel){ scene.remove(sphereLabel); sphereLabel=null; }
+
+  /* load if needed */
+  if(!wGroups[wid]){
+    const {group,meshes,spherePos} = await loadModel(wid);
+    wGroups[wid] = group;
+    wMeshes[wid] = meshes;
+    if(spherePos) wSphere[wid] = spherePos;
+  }
+  scene.add(wGroups[wid]);
+  wGroups[wid].updateMatrixWorld(true);
+
+  const def  = WORLDS[wid];
+  const atmo = def.atmo;
+
+  /* atmosphere */
+  scene.background = new THREE.Color(atmo.bg);
+  scene.fog = new THREE.FogExp2(new THREE.Color(atmo.fog), atmo.fogD);
+  ambient.color.setHex(atmo.amb); ambient.intensity = atmo.ambI;
+  hemi.color.setHex(atmo.amb); hemi.groundColor.setHex(atmo.bg);
+  hemi.intensity = atmo.ambI * .8;
+  atmo.lights.forEach(([x,y,z],i)=>{
+    lights[i].color.setHex(atmo.ac);
+    lights[i].intensity = atmo.acI;
+    lights[i].position.set(x,y,z);
+    lights[i].distance = wid === 'lobby' ? 18 : 28;
+  });
+  _flickerBase = atmo.acI;
+
+  /* post-process */
+  bloomPass.strength  = atmo.bloom;
+  bloomPass.radius    = atmo.bloomR;
+  bloomPass.threshold = atmo.bloomT;
+  fxPass.uniforms.grain.value    = atmo.grain;
+  fxPass.uniforms.vig.value      = atmo.vig;
+  fxPass.uniforms.ab.value       = atmo.ab;
+  fxPass.uniforms.tint.value.set(...atmo.tint);
+  fxPass.uniforms.edgeGlow.value = atmo.edge;
+  fxPass.uniforms.edgeCol.value.setHex(atmo.ac);
+  fxPass.uniforms.ao.value      = atmo.ao      ?? .30;
+  fxPass.uniforms.distort.value  = atmo.distort  ?? 0;
+  fxPass.uniforms.rays.value     = atmo.rays     ?? .10;
+  if(atmo.rayPos) fxPass.uniforms.rayPos.value.set(...atmo.rayPos);
+  fxPass.uniforms.hueShift.value = 0;
+  fxPass.uniforms.tintMix.value  = atmo.tintMix  ?? .42;
+  fxPass.uniforms.contrast.value = atmo.contrast ?? 1.16;
+  fxPass.uniforms.sat.value      = atmo.sat      ?? 1.48;
+
+  /* portals */
+  for(const pd of def.portals){
+    portals.push(spawnPortal(pd, atmo.ac));
+  }
+  /* use sphere as return trigger if available, else fall back to portal */
+  if(wid !== 'lobby' && wSphere[wid]){
+    const dummy = new THREE.Group();
+    retPortal = { group:dummy, worldPos:wSphere[wid].clone(), dest:'lobby', label:'00' };
+  } else {
+    retPortal = spawnReturn(def.returnPortal, atmo);
+  }
+
+  /* spawn player — use sphere marker if found, else fallback */
+  const spBase = wSphere[wid] ? wSphere[wid].clone() : def.spawn.clone();
+  const sp = spBase;
+  if(wMeshes[wid]?.length){
+    const fy = floorY(sp, wMeshes[wid]);
+    sp.y = (fy !== null ? fy : sp.y) + player.height;
+  } else {
+    sp.y = player.height;
+  }
+  player.pos.copy(sp);
+  player.vel.set(0,0,0);
+  player.yaw   = def.spawnYaw;
+  player.pitch = 0;
+  player.onGround = true;
+  player.world = wid;
+
+  /* sphere label — added to scene directly so obj's scale(0.01) doesn't offset it */
+  if(wid !== 'lobby' && wSphere[wid]){
+    sphereLabel = makeSprite('00', 0x88ffbb);
+    sphereLabel.position.copy(wSphere[wid]);
+    sphereLabel.position.y += 1.4;
+    scene.add(sphereLabel);
+  }
+
+  /* lobby spawn marker */
+  if(wid==='lobby'){
+    lobbyMarker = makeLobbyMarker(player.pos.clone());
+  }
+
+  document.getElementById('world-id').textContent = def.label;
+  startWorldAudio(wid);
+}
+
+// ════════════════════════════════════════
+// PORTAL ANIMATION
+// ════════════════════════════════════════
+const OPEN_D  = 2.8;
+const INTER_D = 1.7;
+
+function updatePortals(dt, t){
+  nearPtl = null;
+
+  portals.forEach(p=>{
+    const d = player.pos.distanceTo(p.worldPos);
+    const shouldOpen = d < OPEN_D * 1.4;
+
+    p.openAmt = shouldOpen
+      ? Math.min(1, p.openAmt + dt*2.4)
+      : Math.max(0, p.openAmt - dt*1.6);
+
+    const slide = (p.w/2) * p.openAmt;
+    p.pL.position.x = -p.w/4 - slide*.9;
+    p.pR.position.x =  p.w/4 + slide*.9;
+    p.pL.material.opacity = .15*(1-p.openAmt);
+    p.pR.material.opacity = .15*(1-p.openAmt);
+    p.gp.material.opacity = p.openAmt * .14;
+    p.pl.intensity = .9 + p.openAmt*.8 + .12*Math.sin(t*3.1);
+
+    if(d < INTER_D) nearPtl = { dest:p.dest, label:p.label };
+  });
+
+  if(retPortal){
+    const d = player.pos.distanceTo(retPortal.worldPos);
+    retPortal.group.position.y = retPortal.worldPos.y + player.height + .6 + .06*Math.sin(t*1.4);
+    if(d < INTER_D) nearPtl = { dest:'lobby', label:'00' };
+  }
+
+  /* lobby marker float */
+  if(lobbyMarker){
+    lobbyMarker.position.y = player.pos.y + .6 + .06*Math.sin(t*1.4);
+    lobbyMarker.position.x = player.pos.x;
+    lobbyMarker.position.z = player.pos.z;
+  }
+
+  const hint = document.getElementById('interact');
+  const il   = document.getElementById('il');
+  if(nearPtl && !inTrans){
+    il.textContent = nearPtl.label==='00' ? 'Return to 00' : `Enter ${nearPtl.label}`;
+    hint.classList.add('show');
+  } else {
+    hint.classList.remove('show');
+  }
+}
+
+// ════════════════════════════════════════
+// TELEPORT
+// ════════════════════════════════════════
+const sleep = ms => new Promise(r=>setTimeout(r,ms));
+
+async function teleport(destId){
+  if(inTrans) return;
+  inTrans = true;
+  const fade  = document.getElementById('fade');
+  const rload = document.getElementById('rload');
+  fade.classList.add('show');
+  await sleep(460);
+  if(!wGroups[destId]){
+    rload.textContent = 'Loading ' + WORLDS[destId].label;
+    rload.classList.add('show');
+  }
+  await activateWorld(destId);
+  rload.classList.remove('show');
+  await sleep(80);
+  fade.classList.remove('show');
+  await sleep(520);
+  inTrans = false;
+}
+
+// ════════════════════════════════════════
+// INPUT
+// ════════════════════════════════════════
+window.addEventListener('keydown', e=>{
+  keys[e.code] = true;
+  if(e.code==='KeyE' && nearPtl && !inTrans) teleport(nearPtl.dest);
+});
+window.addEventListener('keyup', e=>{ keys[e.code]=false; });
+
+/* pointer lock */
+document.addEventListener('click', ()=>{
+  if(!locked) renderer.domElement.requestPointerLock();
+});
+document.addEventListener('pointerlockchange', ()=>{
+  locked = document.pointerLockElement === renderer.domElement;
+});
+document.addEventListener('mousemove', e=>{
+  if(!locked) return;
+  player.yaw   -= e.movementX * .002;
+  player.pitch  = Math.max(-1.35, Math.min(1.35, player.pitch - e.movementY*.002));
+});
+
+// ════════════════════════════════════════
+// PLAYER MOVEMENT
+// ════════════════════════════════════════
+const GRAVITY = -9.8;
+const _mv = new THREE.Vector3();
+
+function updatePlayer(dt){
+  if(inTrans) return;
+  const ma = wMeshes[player.world] || [];
+
+  const fwd = new THREE.Vector3(-Math.sin(player.yaw), 0, -Math.cos(player.yaw));
+  const rgt = new THREE.Vector3( Math.cos(player.yaw), 0, -Math.sin(player.yaw));
+
+  _mv.set(0,0,0);
+  if(keys['KeyW']) _mv.addScaledVector(fwd, 1);
+  if(keys['KeyS']) _mv.addScaledVector(fwd,-1);
+  if(keys['KeyA']) _mv.addScaledVector(rgt,-1);
+  if(keys['KeyD']) _mv.addScaledVector(rgt, 1);
+  if(_mv.lengthSq()>0) _mv.normalize();
+
+  const spd = player.speed * (keys['ShiftLeft']||keys['ShiftRight'] ? 1.8 : 1);
+  player.pos.x += _mv.x * spd * dt;
+  player.pos.z += _mv.z * spd * dt;
+
+  /* jump */
+  if((keys['Space']||keys['KeyF']) && player.onGround){
+    player.vel.y = player.jumpV;
+    player.onGround = false;
+  }
+
+  /* gravity */
+  if(!player.onGround) player.vel.y += GRAVITY * dt;
+  player.pos.y += player.vel.y * dt;
+
+  /* floor collision */
+  if(ma.length){
+    const fy = floorY(player.pos, ma);
+    const ty = (fy!==null ? fy : 0) + player.height;
+    if(player.pos.y <= ty){
+      player.pos.y = ty;
+      player.vel.y = 0;
+      player.onGround = true;
+    } else {
+      player.onGround = false;
+    }
+    resolveWalls(player.pos, ma);
+  } else {
+    if(player.pos.y < player.height){
+      player.pos.y = player.height;
+      player.vel.y = 0; player.onGround = true;
+    }
+  }
+
+  /* camera */
+  camera.position.copy(player.pos);
+  camera.rotation.order = 'YXZ';
+  camera.rotation.y = player.yaw;
+  camera.rotation.x = player.pitch;
+}
+
+// ════════════════════════════════════════
+// LIGHT FLICKER
+// ════════════════════════════════════════
+let _flickerBase = 1.1;
+let _w3Blackout = 0; // persistent blackout timer for clinic
+function updateLights(t, dt){
+  const wid = player.world;
+  let f;
+  if(wid==='world1'){
+    /* fire: fast, constantly dancing */
+    f = .72+.28*(.35*Math.sin(t*3.2)+.40*Math.sin(t*8.7+.4)+.25*Math.sin(t*19.3+2.1));
+    if(Math.random()<.004) lights[0].intensity *= 3.5;
+    if(Math.random()<.002) lights[0].intensity *= .08; // sudden die-down
+  } else if(wid==='world2'){
+    /* dark souls: guttering torches, deep drops, rare surge */
+    f = .65+.35*(.45*Math.sin(t*1.4)+.35*Math.sin(t*4.8+.7)+.20*Math.sin(t*11.2+1.8));
+    if(Math.random()<.004) lights[0].intensity *= 3.0;  // gust surge
+    if(Math.random()<.003) lights[0].intensity *= .08;  // torch almost dies
+    if(Math.random()<.001){ f=0.05; } // full near-darkness
+  } else if(wid==='world3'){
+    /* clinic: fluorescent hell — steady then violent stutter + real blackouts */
+    if(_w3Blackout > 0){
+      _w3Blackout -= dt;
+      f = 0;
+    } else {
+      f = .97+.03*Math.sin(t*.3);
+      if(Math.random()<.005) f *= .08;           // rapid stutter
+      if(Math.random()<.008) f *= .40;           // partial dim
+      if(Math.random()<.0012){ _w3Blackout = .08+Math.random()*.25; f=0; } // blackout
+    }
+  } else if(wid==='break'){
+    /* nature: gentle organic pulse */
+    f = .92+.08*(Math.sin(t*.3)+.3*Math.sin(t*.7+1.2));
+  } else {
+    /* lobby: three lights orbit, breathe, and drift hue independently */
+    const hDrift = Math.sin(t * 0.06);
+
+    const f0 = .55+.45*(.50*Math.sin(t*.42)+.30*Math.sin(t*1.3+.4)+.20*Math.sin(t*3.1+1.2));
+    lights[0].intensity = _flickerBase * f0;
+    lights[0].color.setHSL(0.62 + hDrift*.05, .85, .55);
+    lights[0].position.x = Math.sin(t*.11) * 2.8;
+    lights[0].position.y = 3.0 + Math.sin(t*.19) * .6;
+    lights[0].position.z = Math.cos(t*.11) * 2.2 - 5;
+
+    const f1 = .45+.55*(.40*Math.sin(t*.28+2.1)+.35*Math.sin(t*1.7+.8)+.25*Math.sin(t*5.2+2.4));
+    lights[1].intensity = _flickerBase * f1 * 1.15;
+    lights[1].color.setHSL(0.53 + hDrift*.04, .90, .58);
+    lights[1].position.x = Math.cos(t*.07+1.5) * 3.8 - 3.5;
+    lights[1].position.y = 2.0 + Math.sin(t*.23+1.0) * .7;
+    lights[1].position.z = Math.sin(t*.07+1.5) * 1.8 - 7;
+
+    const f2 = .50+.50*(.45*Math.sin(t*.36+1.0)+.30*Math.sin(t*2.6+.2)+.25*Math.sin(t*7.1+3.0));
+    if(Math.random()<.0008) lights[2].intensity = _flickerBase * 4.2;
+    else lights[2].intensity = _flickerBase * f2 * .95;
+    lights[2].color.setHSL(0.72 + hDrift*.06, .80, .50);
+    lights[2].position.x = Math.sin(t*.14+3.0) * 3.2 + 3.5;
+    lights[2].position.y = 2.5 + Math.cos(t*.17+2.0) * .5;
+    lights[2].position.z = Math.cos(t*.09+0.5) * 2.4 - 7;
+    return;
+  }
+  lights[0].intensity = _flickerBase * f;
+  lights[1].intensity = _flickerBase * f * (.88+.12*Math.sin(t*1.3));
+  lights[2].intensity = _flickerBase * f * (.88+.12*Math.sin(t*1.7+1));
+}
+
+
+// ════════════════════════════════════════
+// CAMERA SWAY
+// ════════════════════════════════════════
+function applyCameraSway(t){
+  const atmo = WORLDS[player.world]?.atmo;
+  if(!atmo?.sway) return;
+  const { f=.35, a=.002, roll=.001 } = atmo.sway;
+  camera.position.x += Math.sin(t*f*.7)*a + Math.sin(t*f*2.7)*a*.22;
+  camera.position.y += Math.sin(t*f)*a*.4  + Math.sin(t*f*1.9)*a*.18;
+  camera.rotation.z  = Math.sin(t*f*.4)*roll + Math.sin(t*f*1.3)*roll*.3;
+  if(player.world==='world3' && Math.random()<.0007){
+    camera.position.x += (Math.random()-.5)*.028;
+    camera.position.y += (Math.random()-.5)*.016;
+  }
+}
+
+// ════════════════════════════════════════
+// ANIMATE
+// ════════════════════════════════════════
+const clock = new THREE.Clock();
+let running = false;
+
+function animate(){
+  if(!running) return;
+  requestAnimationFrame(animate);
+  const dt = Math.min(clock.getDelta(), .05);
+  const t  = clock.getElapsedTime();
+
+  updatePlayer(dt);
+  applyCameraSway(t);
+  updatePortals(dt, t);
+  updateLights(t, dt);
+
+  const _hw = WORLDS[player.world]?.atmo?.hueRate ?? 0;
+  if(_hw) fxPass.uniforms.hueShift.value += dt * _hw;
+
+  /* lobby: animate ray source + tint live so the "light" feels like it moves */
+  if(player.world === 'lobby'){
+    fxPass.uniforms.rayPos.value.set(
+      .50 + Math.sin(t*.11) * .18 + Math.sin(t*.07) * .10,
+      .75 + Math.cos(t*.09) * .12 + Math.sin(t*.13) * .06
+    );
+    const tr = .75 + Math.sin(t*.08)*.12;
+    const tg = .85 + Math.sin(t*.06+1.2)*.10;
+    const tb = 1.25 + Math.sin(t*.05+2.4)*.15;
+    fxPass.uniforms.tint.value.set(tr, tg, tb);
+    fxPass.uniforms.rays.value = .14 + Math.sin(t*.12)*.08;
+    fxPass.uniforms.hueShift.value = Math.sin(t*.04) * .18;
+  }
+
+  fxPass.uniforms.time.value = t;
+
+  composer.render();
+}
+
+// ════════════════════════════════════════
+// AUDIO ENGINE
+// ════════════════════════════════════════
+let _ac = null, _masterGain = null, _audioNodes = [];
+
+function _initAC(){
+  if(_ac) return;
+  _ac = new (window.AudioContext || window.webkitAudioContext)();
+  _masterGain = _ac.createGain();
+  _masterGain.gain.value = 0;
+  _masterGain.connect(_ac.destination);
+}
+
+function _mkNoise(buf=2){
+  const frames = _ac.sampleRate * buf;
+  const b = _ac.createBuffer(1, frames, _ac.sampleRate);
+  const d = b.getChannelData(0);
+  for(let i=0;i<frames;i++) d[i]=Math.random()*2-1;
+  const src = _ac.createBufferSource();
+  src.buffer = b; src.loop = true;
+  return src;
+}
+
+function _mkOsc(type, freq){
+  const o = _ac.createOscillator();
+  o.type = type; o.frequency.value = freq;
+  return o;
+}
+
+function _track(...nodes){ _audioNodes.push(...nodes); }
+
+function stopAudio(){
+  _audioNodes.forEach(n=>{ try{ n.stop(); }catch(e){} });
+  _audioNodes = [];
+  if(_masterGain) _masterGain.gain.cancelScheduledValues(_ac.currentTime);
+}
+
+function startWorldAudio(wid){
+  if(!_ac) return;
+  stopAudio();
+  _masterGain.gain.cancelScheduledValues(_ac.currentTime);
+  _masterGain.gain.setValueAtTime(0, _ac.currentTime);
+  _masterGain.gain.linearRampToValueAtTime(1, _ac.currentTime + 2.5);
+
+  const t = _ac.currentTime;
+
+  if(wid === 'lobby'){
+    // Low sine drone + filtered noise wind
+    const drone = _mkOsc('sine', 41);
+    const droneG = _ac.createGain(); droneG.gain.value = 0.22;
+    drone.connect(droneG); droneG.connect(_masterGain);
+
+    const lfo = _mkOsc('sine', 0.18);
+    const lfoG = _ac.createGain(); lfoG.gain.value = 8;
+    lfo.connect(lfoG); lfoG.connect(drone.frequency);
+
+    const noise = _mkNoise();
+    const filt = _ac.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 220; filt.Q.value = 0.6;
+    const noiseG = _ac.createGain(); noiseG.gain.value = 0.06;
+    noise.connect(filt); filt.connect(noiseG); noiseG.connect(_masterGain);
+
+    const lfo2 = _mkOsc('sine', 0.07);
+    const lfo2G = _ac.createGain(); lfo2G.gain.value = 60;
+    lfo2.connect(lfo2G); lfo2G.connect(filt.frequency);
+
+    _track(drone, lfo, noise, lfo2);
+    [drone, lfo, noise, lfo2].forEach(n=>n.start());
+
+  } else if(wid === 'world1'){
+    // Fire crackle: AM bandpass noise + low rumble + detuned saws
+    const noise = _mkNoise();
+    const filt = _ac.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 800; filt.Q.value = 1.4;
+    const noiseG = _ac.createGain(); noiseG.gain.value = 0.0;
+    noise.connect(filt); filt.connect(noiseG); noiseG.connect(_masterGain);
+
+    const crackleLfo = _mkOsc('sine', 7);
+    const crackleLfoG = _ac.createGain(); crackleLfoG.gain.value = 0.18;
+    crackleLfo.connect(crackleLfoG); crackleLfoG.connect(noiseG.gain);
+
+    const rumble = _mkOsc('sawtooth', 28);
+    const rumbleLp = _ac.createBiquadFilter();
+    rumbleLp.type = 'lowpass'; rumbleLp.frequency.value = 80;
+    const rumbleG = _ac.createGain(); rumbleG.gain.value = 0.18;
+    rumble.connect(rumbleLp); rumbleLp.connect(rumbleG); rumbleG.connect(_masterGain);
+
+    const saw1 = _mkOsc('sawtooth', 55);
+    const saw2 = _mkOsc('sawtooth', 55.7);
+    const sawLp = _ac.createBiquadFilter();
+    sawLp.type = 'lowpass'; sawLp.frequency.value = 260;
+    const sawG = _ac.createGain(); sawG.gain.value = 0.09;
+    saw1.connect(sawLp); saw2.connect(sawLp);
+    sawLp.connect(sawG); sawG.connect(_masterGain);
+
+    _track(noise, crackleLfo, rumble, saw1, saw2);
+    [noise, crackleLfo, rumble, saw1, saw2].forEach(n=>n.start());
+
+  } else if(wid === 'world2'){
+    // Dark Souls: hollow wind + deep drone + ominous low pulse
+    const noise = _mkNoise();
+    const filt = _ac.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 340; filt.Q.value = 0.5;
+    const windG = _ac.createGain(); windG.gain.value = 0.09;
+    noise.connect(filt); filt.connect(windG); windG.connect(_masterGain);
+
+    const windLfo = _mkOsc('sine', 0.11);
+    const windLfoG = _ac.createGain(); windLfoG.gain.value = 120;
+    windLfo.connect(windLfoG); windLfoG.connect(filt.frequency);
+
+    const drone = _mkOsc('sawtooth', 36);
+    const droneLp = _ac.createBiquadFilter();
+    droneLp.type = 'lowpass'; droneLp.frequency.value = 140;
+    const droneG = _ac.createGain(); droneG.gain.value = 0.14;
+    drone.connect(droneLp); droneLp.connect(droneG); droneG.connect(_masterGain);
+
+    const pulse = _mkOsc('sine', 18);
+    const pulseG = _ac.createGain(); pulseG.gain.value = 0.20;
+    pulse.connect(pulseG); pulseG.connect(_masterGain);
+
+    const droneLfo = _mkOsc('sine', 0.04);
+    const droneLfoG = _ac.createGain(); droneLfoG.gain.value = 5;
+    droneLfo.connect(droneLfoG); droneLfoG.connect(drone.frequency);
+
+    _track(noise, windLfo, drone, pulse, droneLfo);
+    [noise, windLfo, drone, pulse, droneLfo].forEach(n=>n.start());
+
+  } else if(wid === 'world3'){
+    // Clinic fluorescent: 120Hz square buzz + 60Hz hum + high static
+    const buzz = _mkOsc('square', 120);
+    const buzzBp = _ac.createBiquadFilter();
+    buzzBp.type = 'bandpass'; buzzBp.frequency.value = 120; buzzBp.Q.value = 8;
+    const buzzG = _ac.createGain(); buzzG.gain.value = 0.14;
+    buzz.connect(buzzBp); buzzBp.connect(buzzG); buzzG.connect(_masterGain);
+
+    const hum60 = _mkOsc('sine', 60);
+    const humG = _ac.createGain(); humG.gain.value = 0.09;
+    hum60.connect(humG); humG.connect(_masterGain);
+
+    const hum180 = _mkOsc('sine', 180);
+    const hum180G = _ac.createGain(); hum180G.gain.value = 0.04;
+    hum180.connect(hum180G); hum180G.connect(_masterGain);
+
+    const static_ = _mkNoise();
+    const staticHp = _ac.createBiquadFilter();
+    staticHp.type = 'highpass'; staticHp.frequency.value = 3800;
+    const staticG = _ac.createGain(); staticG.gain.value = 0.022;
+    static_.connect(staticHp); staticHp.connect(staticG); staticG.connect(_masterGain);
+
+    const buzzLfo = _mkOsc('sine', 0.9);
+    const buzzLfoG = _ac.createGain(); buzzLfoG.gain.value = 0.04;
+    buzzLfo.connect(buzzLfoG); buzzLfoG.connect(buzzG.gain);
+
+    _track(buzz, hum60, hum180, static_, buzzLfo);
+    [buzz, hum60, hum180, static_, buzzLfo].forEach(n=>n.start());
+
+  } else if(wid === 'break'){
+    // Trippy: 5 drifting harmonics + phased bandpass pad
+    const freqs = [55, 82.5, 110, 137.5, 165];
+    freqs.forEach((f, i)=>{
+      const osc = _mkOsc('sine', f);
+      const lfo = _mkOsc('sine', 0.05 + i*0.031);
+      const lfoG = _ac.createGain(); lfoG.gain.value = f * 0.018;
+      lfo.connect(lfoG); lfoG.connect(osc.frequency);
+      const g = _ac.createGain(); g.gain.value = 0.07 - i*0.008;
+      osc.connect(g); g.connect(_masterGain);
+      _track(osc, lfo);
+      osc.start(); lfo.start();
+    });
+
+    const noise = _mkNoise();
+    const filt = _ac.createBiquadFilter();
+    filt.type = 'bandpass'; filt.frequency.value = 500; filt.Q.value = 1.8;
+    const padG = _ac.createGain(); padG.gain.value = 0.06;
+    noise.connect(filt); filt.connect(padG); padG.connect(_masterGain);
+
+    const padLfo = _mkOsc('sine', 0.13);
+    const padLfoG = _ac.createGain(); padLfoG.gain.value = 200;
+    padLfo.connect(padLfoG); padLfoG.connect(filt.frequency);
+
+    _track(noise, padLfo);
+    noise.start(); padLfo.start();
+  }
+}
+
+// ════════════════════════════════════════
+// RESIZE
+// ════════════════════════════════════════
+window.addEventListener('resize', ()=>{
+  camera.aspect = innerWidth/innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(innerWidth,innerHeight);
+  composer.setSize(innerWidth,innerHeight);
+  fxPass.uniforms.res.value.set(innerWidth,innerHeight);
+  bloomPass.resolution.set(innerWidth,innerHeight);
+});
+
+// ════════════════════════════════════════
+// BOOT
+// ════════════════════════════════════════
+async function boot(){
+  const lbl   = document.getElementById('ld-label');
+  const pct   = document.getElementById('ld-pct');
+  const bar   = document.getElementById('bar-fill');
+
+  let prog = 0;
+  const iv = setInterval(()=>{
+    prog = Math.min(prog+1.8, 91);
+    bar.style.width = prog+'%';
+    pct.textContent = Math.floor(prog)+'%';
+  }, 90);
+
+  try {
+    lbl.textContent = 'Loading LOBBY';
+    await activateWorld('lobby');
+  } catch(err){
+    clearInterval(iv);
+    lbl.textContent = 'Load error — see console';
+    console.error(err);
+    return;
+  }
+
+  clearInterval(iv);
+  bar.style.width='100%'; pct.textContent='100%';
+  lbl.textContent='Ready';
+
+  /* worlds load on-demand when first visited (avoids stalling the lobby) */
+
+  await sleep(550);
+  document.getElementById('loading').classList.add('hide');
+  await sleep(700);
+  document.getElementById('loading').style.display='none';
+
+  const startEl = document.getElementById('start');
+  startEl.classList.add('show');
+
+  const rcEl = document.getElementById('rc');
+  rcEl.style.display = 'block';
+  window.addEventListener('mousemove', e=>{
+    rcEl.style.left = e.clientX + 'px';
+    rcEl.style.top  = e.clientY + 'px';
+  }, { passive:true });
+
+  document.getElementById('enter-btn').addEventListener('click', async ()=>{
+    _initAC();
+    startWorldAudio('lobby');
+    rcEl.style.display = 'none';
+    renderer.domElement.requestPointerLock();
+    startEl.classList.add('hide');
+    await sleep(600);
+    startEl.style.display='none';
+    document.getElementById('hud').classList.add('show');
+    running = true;
+    clock.start();
+    animate();
+  });
+}
+
+boot();
+</script>
+</body>
+</html>

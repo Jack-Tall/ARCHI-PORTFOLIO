@@ -1,0 +1,168 @@
+newmtl material2
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material2_base_color.jpg
+
+newmtl material3
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material3_base_color.jpg
+
+newmtl material4
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material4_base_color.jpg
+
+newmtl material10
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material10_base_color.jpg
+
+newmtl material9
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material9_base_color.jpg
+
+newmtl material12
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material12_base_color.jpg
+
+newmtl material11
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material11_base_color.jpg
+
+newmtl material13
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material13_base_color.jpg
+
+newmtl material14
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 1
+Ns 16
+Ks 1 1 1
+map_Kd WORLD_ONE/material14_base_color.jpg
+
+newmtl default_material
+illum 7
+Kd 0.735357 0.735357 0.735357
+adobe_interior_color 1 1 1
+Ni 1.5
+adobe_density 0
+Tr 0
+d 1
+Ka 0 0 0
+Ke 0 0 0
+Pm 0
+adobe_translucence 0
+Pr 0.3
+Ns 16
+Ks 1 1 1
